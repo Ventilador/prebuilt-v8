@@ -41,14 +41,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v1
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        id: toolchain
-        with:
-          toolchain: ${{ inputs.rust_version }}
-          targets: ${{ matrix.target }}
-          components: "rustfmt"
 
       - name: Install MSVC/MSBuild (Windows)
         if: runner.os == 'Windows'
@@ -73,8 +65,16 @@ jobs:
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "$PWD/depot_tools" >> $GITHUB_PATH
-          echo $(find ./depot_tools -type f -name install-build-deps.sh)
+          echo "file at: $(find ./depot_tools -type f -name install-build-deps.sh)"
           ./depot_tools/build/install-build-deps.sh
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        id: toolchain
+        with:
+          toolchain: ${{ inputs.rust_version }}
+          targets: ${{ matrix.target }}
+          components: "rustfmt"
 
       - name: Checkout V8 Source Code
         run: |
