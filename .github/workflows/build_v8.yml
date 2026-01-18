@@ -73,6 +73,7 @@ jobs:
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "$PWD/depot_tools" >> $GITHUB_PATH
+          echo $(find ./depot_tools -type f -name install-build-deps.sh)
           ./depot_tools/build/install-build-deps.sh
 
       - name: Checkout V8 Source Code
