@@ -1,13 +1,16 @@
 name: Build V8 Static Library
 
-on: [ workflow_dispatch ]
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: false
+        type: string
 
 jobs:
   publish_headers:
     name: publish header files
-    if: >-
-      startsWith(github.event.head_commit.message, '[Release]') &&
-      github.ref == 'refs/heads/master'
+    if: startsWith(github.event.head_commit.message, '[Release]') &&  github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
