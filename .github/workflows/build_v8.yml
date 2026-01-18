@@ -81,14 +81,14 @@ jobs:
           git checkout ${{ steps.version.outputs.content }}
           gclient sync
           ./build/install-build-deps.sh
-      
+
       - name: Build V8
         shell: pwsh
         run: |
           Set-Location -Path v8
           python3 tools/dev/v8gen.py x64.release
           # Copy-Item "../platforms/${{ matrix.config.name }}_${{ matrix.config.architecture }}/args.gn" -Destination "./out.gn/x64.release/args.gn" -force
-          gn gen out.gn/x64.release --args='target_os="linux" is_debug=false target_cpu="x64" use_custom_libcxx=false is_component_build=false v8_static_library=true v8_monolithic_for_shared_library=true v8_monolithic=true v8_use_external_startup_data=false v8_enable_test_features=false v8_enable_i18n_support=false treat_warnings_as_errors=false'
+          gn gen out.gn/x64.release --args='target_os="linux" is_debug=false target_cpu="x64" use_custom_libcxx=false is_component_build=false is_clang=true v8_static_library=true v8_monolithic_for_shared_library=true v8_monolithic=true v8_use_external_startup_data=false v8_enable_test_features=false v8_enable_i18n_support=false treat_warnings_as_errors=false'
           Get-Content ./out.gn/x64.release/args.gn | Write-Output
           ninja -C out.gn/x64.release
       
@@ -106,9 +106,6 @@ jobs:
           path: artifact/
 
       - name: Publish Compiled Libraries
-        if: >-
-          startsWith(github.event.head_commit.message, '[Release]') &&
-          github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -116,7 +113,8 @@ jobs:
           name: V8 ${{ steps.version.outputs.content }}
           tag_name: v${{ steps.version.outputs.content }}
           files: artifact/${{ matrix.config.name }}_${{ matrix.config.architecture }}_${{ matrix.config.library_name }}
-          - name: Prepare Artifact Directory (Headers)
+
+      - name: Prepare Artifact Directory (Headers)
         shell: pwsh
         run: |
           New-Item -ItemType directory -Path ./artifact/
@@ -127,9 +125,6 @@ jobs:
         run: Compress-Archive -Path artifact/include -DestinationPath artifact/header_files.zip
 
       - name: Publish Header Files
-        if: >-
-          startsWith(github.event.head_commit.message, '[Release]') &&
-          github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
