@@ -11,50 +11,7 @@ on:
         default: "1.91.1"
         type: string
 jobs:
-  publish_headers:
-    name: publish header files
-    if: startsWith(github.event.head_commit.message, '[Release]') &&  github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v1
-      
-      - name: Get Target V8 Version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ./V8_VERSION
-      
-      - name: Install Depot Tools
-        run: |
-          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          echo "$PWD/depot_tools" >> $GITHUB_PATH
 
-      - name: Checkout V8 Source Code
-        run: |
-          fetch v8
-          cd v8
-          git checkout ${{ steps.version.outputs.content }}
-          gclient sync
-      
-      - name: Prepare Artifact Directory (Headers)
-        shell: pwsh
-        run: |
-          New-Item -ItemType directory -Path ./artifact/
-          Copy-Item -Path ./v8/include -Recurse -Filter *.h -Destination ./artifact/ -Container
-      
-      - name: Prepare Release Header Files
-        shell: pwsh
-        run: Compress-Archive -Path artifact/include -DestinationPath artifact/header_files.zip
-
-      - name: Publish Compiled Libraries
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          name: V8 ${{ steps.version.outputs.content }}
-          tag_name: v${{ steps.version.outputs.content }}
-          files: artifact/header_files.zip 
 
   build:
     name: ${{ matrix.config.name }}_${{ matrix.config.architecture }}
@@ -116,6 +73,7 @@ jobs:
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "$PWD/depot_tools" >> $GITHUB_PATH
+          ./depot_tools/build/install-build-deps.sh
 
       - name: Checkout V8 Source Code
         run: |
@@ -123,14 +81,31 @@ jobs:
           cd v8
           git checkout ${{ steps.version.outputs.content }}
           gclient sync
+      - name: Prepare Artifact Directory (Headers)
+        shell: pwsh
+        run: |
+          New-Item -ItemType directory -Path ./artifact/
+          Copy-Item -Path ./v8/include -Recurse -Filter *.h -Destination ./artifact/ -Container
+      
+      - name: Prepare Release Header Files
+        shell: pwsh
+        run: Compress-Archive -Path artifact/include -DestinationPath artifact/header_files.zip
 
+      - name: Publish Compiled Libraries
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: V8 ${{ steps.version.outputs.content }}
+          tag_name: v${{ steps.version.outputs.content }}
+          files: artifact/header_files.zip 
       - name: Build V8
         shell: pwsh
         run: |
           Set-Location -Path v8
           python3 tools/dev/v8gen.py x64.release
           Copy-Item "../platforms/${{ matrix.config.name }}_${{ matrix.config.architecture }}/args.gn" -Destination "./out.gn/x64.release/args.gn" -force
-          gn gen out.gn/x64.release
+          gn gen out.gn/x64.release --args='target_os="linux" is_debug=false target_cpu="x64" use_custom_libcxx=false is_component_build=false is_clang=true v8_static_library=true v8_monolithic_for_shared_library=true v8_monolithic=true v8_use_external_startup_data=false v8_enable_test_features=false v8_enable_i18n_support=false treat_warnings_as_errors=false'
           Get-Content ./out.gn/x64.release/args.gn | Write-Output
           ninja -C out.gn/x64.release
       
@@ -158,3 +133,47 @@ jobs:
           name: V8 ${{ steps.version.outputs.content }}
           tag_name: v${{ steps.version.outputs.content }}
           files: artifact/${{ matrix.config.name }}_${{ matrix.config.architecture }}_${{ matrix.config.library_name }}
+  # publish_headers:
+  #   name: publish header files
+  #   if: startsWith(github.event.head_commit.message, '[Release]') &&  github.ref == 'refs/heads/master'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v1
+      
+  #     - name: Get Target V8 Version
+  #       id: version
+  #       uses: juliangruber/read-file-action@v1
+  #       with:
+  #         path: ./V8_VERSION
+      
+  #     - name: Install Depot Tools
+  #       run: |
+  #         git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+  #         echo "$PWD/depot_tools" >> $GITHUB_PATH
+
+  #     - name: Checkout V8 Source Code
+  #       run: |
+  #         fetch v8
+  #         cd v8
+  #         git checkout ${{ steps.version.outputs.content }}
+  #         gclient sync
+      
+  #     - name: Prepare Artifact Directory (Headers)
+  #       shell: pwsh
+  #       run: |
+  #         New-Item -ItemType directory -Path ./artifact/
+  #         Copy-Item -Path ./v8/include -Recurse -Filter *.h -Destination ./artifact/ -Container
+      
+  #     - name: Prepare Release Header Files
+  #       shell: pwsh
+  #       run: Compress-Archive -Path artifact/include -DestinationPath artifact/header_files.zip
+
+  #     - name: Publish Compiled Libraries
+  #       uses: softprops/action-gh-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         name: V8 ${{ steps.version.outputs.content }}
+  #         tag_name: v${{ steps.version.outputs.content }}
+  #         files: artifact/header_files.zip 
