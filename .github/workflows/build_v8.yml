@@ -1,6 +1,6 @@
 name: Build V8 Static Library
 
-on: [ push, pull_request, workflow_dispatch ]
+on: [ workflow_dispatch ]
 
 jobs:
   publish_headers:
@@ -56,11 +56,11 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
-        config:
-          - os: windows-latest
-            name: windows
-            architecture: x64
-            library_name: v8_monolith.lib
+        # config:
+        #   - os: windows-latest
+        #     name: windows
+        #     architecture: x64
+        #     library_name: v8_monolith.lib
 
           - os: ubuntu-latest
             name: linux
